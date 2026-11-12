@@ -26,7 +26,7 @@ class SendTests(unittest.TestCase):
         self.credentials_mock = self.creds.start(); self.addCleanup(self.creds.stop)
         self.username = patch.object(m, 'read_username', return_value='sender@yandex.ru')
         self.username.start(); self.addCleanup(self.username.stop)
-        self.smtp_patch = patch.object(m.smtplib, 'SMTP_SSL')
+        self.smtp_patch = patch.object(smtplib, 'SMTP_SSL')
         self.smtp = self.smtp_patch.start(); self.addCleanup(self.smtp_patch.stop)
         self.client = self.smtp.return_value
         self.client.send_message.return_value = {}
@@ -50,7 +50,7 @@ class SendTests(unittest.TestCase):
         self.assertEqual(str(message['Subject']), self.args['subject'])
         self.assertEqual(message.get_content().strip(), self.args['body_text'])
         self.assertEqual(m.get_send_status_impl(self.args)['message_id'], result['message_id'])
-        db = m.send_database()
+        db = m.smtp.send_database(m.data_directory())
         try:
             row = db.execute('SELECT fingerprint, result FROM sends').fetchone()
         finally:

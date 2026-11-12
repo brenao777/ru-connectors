@@ -1,8 +1,6 @@
 """Check IMAP and SMTP login without reading or sending messages."""
 import json
 from pathlib import Path
-import smtplib
-import ssl
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "server"))
@@ -24,18 +22,7 @@ def main():
     except (mail.SafeMailError, mail.imaplib.IMAP4.error, OSError):
         pass
 
-    client = None
-    try:
-        client = smtplib.SMTP_SSL(
-            mail.SMTP_HOST, mail.SMTP_PORT, context=ssl.create_default_context(), timeout=15,
-        )
-        client.login(username, password)
-        result["smtp"] = True
-    except (smtplib.SMTPException, OSError):
-        pass
-    finally:
-        if client is not None:
-            client.close()
+    result["smtp"] = mail.smtp.check_smtp(mail.SMTP_HOST, mail.SMTP_PORT, username, password)
     result["ready"] = result["imap"] and result["smtp"]
     print(json.dumps(result))
     return 0 if result["ready"] else 4

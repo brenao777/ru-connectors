@@ -1,4 +1,6 @@
 import importlib.util
+import smtplib
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -10,10 +12,31 @@ m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
 
 class MailConnectorTests(unittest.TestCase):
-    def test_only_read_tools_are_exposed(self):
-        self.assertEqual(set(m.HANDLERS), {'list_folders', 'list_messages', 'search_messages', 'read_message'})
-        self.assertEqual({x['name'] for x in m.TOOLS}, set(m.HANDLERS))
-        self.assertTrue(all(x['annotations']['readOnlyHint'] for x in m.TOOLS))
+    def test_send_tool_uses_mail_smtp_and_deduplicates(self):
+        arguments = {
+            "to": "recipient@example.com",
+            "subject": "Проверка",
+            "body_text": "Тестовое письмо",
+            "idempotency_key": "mail-test-123",
+            "confirm": True,
+        }
+        request = {"id": 1, "method": "tools/call",
+                   "params": {"name": "send_message", "arguments": arguments}}
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(m.smtp, "data_directory", return_value=Path(directory)) as storage, \
+                patch.object(m, "load_credentials", return_value=("sender@mail.ru", "test-only")), \
+                patch.object(smtplib, "SMTP_SSL") as tls:
+            tls.return_value.send_message.return_value = {}
+            first = m.handle_request(request)["result"]["structuredContent"]
+            second = m.handle_request(request)["result"]["structuredContent"]
+            self.assertEqual(first["status"], "accepted")
+            self.assertTrue(second["already_existed"])
+            self.assertEqual(m.get_send_status_impl(arguments)["message_id"], first["message_id"])
+        self.assertEqual(tls.call_args.args, ("smtp.mail.ru", 465))
+        self.assertTrue(tls.call_args.kwargs["context"].check_hostname)
+        storage.assert_called_with("mail-ru")
+        tls.return_value.login.assert_called_once_with("sender@mail.ru", "test-only")
+        tls.return_value.send_message.assert_called_once()
 
     def test_message_is_fetched_without_marking_read(self):
         message = EmailMessage()
@@ -41,9 +64,14 @@ class MailConnectorTests(unittest.TestCase):
         self.assertTrue(client.select.call_args.kwargs['readonly'])
         self.assertTrue(m.HEADER_FETCH.startswith('(BODY.PEEK['))
 
-    def test_unknown_write_tool_is_rejected(self):
-        response = m.handle_request({'jsonrpc':'2.0','id':1,'method':'tools/call','params':{'name':'send_message','arguments':{}}})
-        self.assertIn('error', response)
+    def test_send_requires_explicit_confirmation_before_loading_credentials(self):
+        arguments = {"to": "recipient@example.com", "subject": "Тест", "body_text": "Тест",
+                     "idempotency_key": "mail-test-123", "confirm": False}
+        with patch.object(m, "load_credentials") as credentials:
+            response = m.handle_request({"id": 1, "method": "tools/call",
+                                         "params": {"name": "send_message", "arguments": arguments}})
+        self.assertTrue(response["result"]["isError"])
+        credentials.assert_not_called()
 
 if __name__ == '__main__':
     unittest.main()

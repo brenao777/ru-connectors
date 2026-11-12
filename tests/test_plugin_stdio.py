@@ -14,7 +14,7 @@ class PluginStdioTests(unittest.TestCase):
         source = Path(__file__).resolve().parents[1] / "plugins" / "ru-connectors"
         for config_name in ("mcp.codex.json", ".mcp.json"):
             config = json.loads((source / config_name).read_text(encoding="utf-8"))
-            self.assertEqual(set(config["mcpServers"]), {"yandex-mail-safe", "mail-ru-readonly"})
+            self.assertEqual(set(config["mcpServers"]), {"yandex-mail-safe", "mail-ru"})
             for name, mcp in config["mcpServers"].items():
                 with self.subTest(config=config_name, server=name):
                     self.check_launcher(source, name, mcp)
@@ -46,4 +46,4 @@ class PluginStdioTests(unittest.TestCase):
         if name == "yandex-mail-safe":
             self.assertTrue({"send_message", "get_send_status"} <= names)
         else:
-            self.assertEqual(names, {"list_folders", "list_messages", "search_messages", "read_message"})
+            self.assertEqual(names, {"list_folders", "list_messages", "search_messages", "read_message", "send_message", "get_send_status"})

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check Mail.ru login in read-only mode without reading messages."""
+"""Check Mail.ru IMAP and SMTP login without reading or sending messages."""
 import json
 from pathlib import Path
 import sys
@@ -10,19 +10,22 @@ import mail_ru_mcp as mail
 
 def main():
     try:
-        mail.load_credentials()
+        username, password = mail.load_credentials()
     except mail.SafeMailError:
         print(json.dumps({"ready": False, "reason": "credentials_unavailable"}))
         return 3
 
+    result = {"imap": False, "smtp": False}
     try:
         client, _ = mail.connect(folder="INBOX")
         mail.close_client(client)
+        result["imap"] = True
     except mail.SafeMailError:
-        print(json.dumps({"ready": False, "imap": False}))
-        return 4
-    print(json.dumps({"ready": True, "imap": True}))
-    return 0
+        pass
+    result["smtp"] = mail.smtp.check_smtp(mail.SMTP_HOST, mail.SMTP_PORT, username, password)
+    result["ready"] = result["imap"] and result["smtp"]
+    print(json.dumps(result))
+    return 0 if result["ready"] else 4
 
 
 if __name__ == "__main__":

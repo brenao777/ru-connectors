@@ -11,7 +11,7 @@
       ],
       "cwd": "."
     },
-    "mail-ru-readonly": {
+    "mail-ru": {
       "command": "git",
       "args": [
         "-c",

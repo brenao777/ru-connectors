@@ -18,7 +18,7 @@ codex plugin add yandex-mail-windows@yandex-mail-safe
 В сессии Claude Code выполните по очереди:
 
 ```text
-/plugin marketplace add brenao777/yandex-mail-safe
+/plugin marketplace add https://github.com/brenao777/yandex-mail-safe.git
 /plugin install yandex-mail-windows@yandex-mail-safe
 ```
 

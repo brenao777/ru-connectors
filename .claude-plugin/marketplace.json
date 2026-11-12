@@ -1,0 +1,21 @@
+{
+  "name": "yandex-mail-safe",
+  "owner": {
+    "name": "Michael Gusev"
+  },
+  "plugins": [
+    {
+      "name": "yandex-mail-windows",
+      "version": "0.1.0",
+      "description": "Яндекс Почта на Windows: чтение, поиск, вложения, черновики и отправка.",
+      "source": "./plugins/yandex-mail-windows"
+    },
+    {
+      "name": "yandex-mail-macos",
+      "version": "0.1.0",
+      "description": "Яндекс Почта на macOS: чтение, поиск, вложения, черновики и отправка.",
+      "source": "./plugins/yandex-mail-macos"
+    }
+  ],
+  "description": "Подключение Яндекс Почты в Codex и Claude Code на Windows и macOS."
+}

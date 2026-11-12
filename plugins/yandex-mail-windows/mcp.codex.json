@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "yandex-mail-safe": {
+      "command": "powershell.exe",
+      "args": [
+        "-NoLogo",
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "./scripts/connector.ps1",
+        "-Mode",
+        "Serve"
+      ],
+      "cwd": "."
+    }
+  }
+}

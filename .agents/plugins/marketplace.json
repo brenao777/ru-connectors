@@ -1,0 +1,32 @@
+{
+  "name": "yandex-mail-safe",
+  "interface": {
+    "displayName": "Яндекс Почта"
+  },
+  "plugins": [
+    {
+      "name": "yandex-mail-windows",
+      "source": {
+        "source": "local",
+        "path": "./plugins/yandex-mail-windows"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "yandex-mail-macos",
+      "source": {
+        "source": "local",
+        "path": "./plugins/yandex-mail-macos"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

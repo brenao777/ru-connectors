@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "yandex-mail-safe": {
+      "command": "/bin/zsh",
+      "args": [
+        "./scripts/connector.sh",
+        "serve"
+      ],
+      "cwd": "."
+    }
+  }
+}

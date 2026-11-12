@@ -1,4 +1,7 @@
 param(
+    [Parameter(Mandatory=$true)]
+    [ValidateSet('yandex-mail', 'mail-ru')]
+    [string]$Provider,
     [ValidateSet('Serve', 'Setup', 'Check', 'ReadAttachment')]
     [string]$Mode = 'Serve',
     [string]$AttachmentPath,
@@ -8,8 +11,11 @@ param(
 $ErrorActionPreference = 'Stop'
 $state = Join-Path $env:LOCALAPPDATA 'Codex\yandex-mail-safe'
 $runtimeFile = Join-Path $state 'runtime-python.txt'
-$server = Join-Path $PSScriptRoot '..\server\yandex_mail_mcp.py'
-$check = Join-Path $PSScriptRoot 'check_connection.py'
+$providerRoot = Join-Path $PSScriptRoot ('..\' + $Provider)
+$serverName = if ($Provider -eq 'yandex-mail') { 'yandex_mail_mcp.py' } else { 'mail_ru_mcp.py' }
+$server = Join-Path $providerRoot ('server\' + $serverName)
+$scripts = Join-Path $providerRoot 'scripts'
+$check = Join-Path $scripts 'check_connection.py'
 
 if ($Mode -eq 'Setup') {
     $bootstrap = Join-Path $PSScriptRoot 'bootstrap_windows.ps1'
@@ -43,19 +49,19 @@ if ($Mode -eq 'Setup') {
             exit $LASTEXITCODE
         }
     }
-    & $python -I (Join-Path $PSScriptRoot 'setup_credentials.py')
+    & $python -I (Join-Path $scripts 'setup_windows.py')
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     & $python -I $check
     exit $LASTEXITCODE
 }
 
 if (-not [IO.File]::Exists($runtimeFile)) {
-    [Console]::Error.WriteLine('Yandex Mail setup is required. Run the connect-yandex-mail skill and start a new session.')
+    [Console]::Error.WriteLine('Mail setup is required. Run the connect-russian-mail skill and start a new session.')
     exit 20
 }
 $python = [IO.File]::ReadAllText($runtimeFile)
 if (-not [IO.Path]::IsPathRooted($python) -or -not [IO.File]::Exists($python)) {
-    [Console]::Error.WriteLine('Yandex Mail Python runtime is unavailable. Run the connect-yandex-mail skill.')
+    [Console]::Error.WriteLine('Mail plugin Python runtime is unavailable. Run the connect-russian-mail skill.')
     exit 20
 }
 
@@ -64,8 +70,9 @@ if ($Mode -eq 'Check') {
     exit $LASTEXITCODE
 }
 if ($Mode -eq 'ReadAttachment') {
+    if ($Provider -ne 'yandex-mail') { throw 'Only Yandex Mail supports attachment contents.' }
     if (-not $AttachmentPath) { throw 'AttachmentPath is required.' }
-    & $python -I (Join-Path $PSScriptRoot 'read_attachment_file.py') -- $AttachmentPath
+    & $python -I (Join-Path $scripts 'read_attachment_file.py') -- $AttachmentPath
     exit $LASTEXITCODE
 }
 

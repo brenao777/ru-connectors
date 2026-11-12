@@ -2,7 +2,14 @@
 set -euo pipefail
 
 script_dir=${0:A:h}
-mode=${1:-serve}
+provider=${1:?missing provider}
+mode=${2:-serve}
+case "$provider" in
+    yandex-mail) server=yandex_mail_mcp.py ;;
+    mail-ru) server=mail_ru_mcp.py ;;
+    *) exit 64 ;;
+esac
+provider_dir="$script_dir/../$provider"
 
 find_python() {
     local candidate
@@ -21,7 +28,7 @@ find_python() {
 
 if ! python_exe=$(find_python); then
     if [[ "$mode" != setup ]]; then
-        print -u2 'Run the connect-yandex-mail skill to set up Python.'
+        print -u2 'Run the connect-russian-mail skill to set up Python.'
         exit 20
     fi
     brew_exe=$(command -v brew || true)
@@ -41,16 +48,16 @@ if ! python_exe=$(find_python); then
     python_exe=$(find_python)
 fi
 
-check="$script_dir/check_connection.py"
+check="$provider_dir/scripts/check_connection.py"
 case "$mode" in
-    serve) exec "$python_exe" -E -s -B "$script_dir/../server/yandex_mail_mcp.py" ;;
+    serve) exec "$python_exe" -E -s -B "$provider_dir/server/$server" ;;
     check) exec "$python_exe" -I "$check" ;;
     read-attachment)
-        [[ $# == 2 ]] || exit 64
-        exec "$python_exe" -I "$script_dir/read_attachment_file.py" -- "$2"
+        [[ "$provider" == yandex-mail && $# == 3 ]] || exit 64
+        exec "$python_exe" -I "$provider_dir/scripts/read_attachment_file.py" -- "$3"
         ;;
     setup)
-        if [[ ${2:-} != --reconnect ]]; then
+        if [[ ${3:-} != --reconnect ]]; then
             code=0
             status=$("$python_exe" -I "$check") || code=$?
             if [[ $code != 3 ]]; then
@@ -58,7 +65,7 @@ case "$mode" in
                 exit "$code"
             fi
         fi
-        "$python_exe" -I "$script_dir/setup_credentials.py"
+        "$python_exe" -I "$provider_dir/scripts/setup_macos.py"
         exec "$python_exe" -I "$check"
         ;;
     *) exit 64 ;;

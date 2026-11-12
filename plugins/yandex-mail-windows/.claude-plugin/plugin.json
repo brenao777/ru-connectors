@@ -1,8 +1,0 @@
-{
-  "name": "yandex-mail-windows",
-  "version": "0.1.0",
-  "description": "Яндекс Почта на Windows: чтение, поиск, вложения, черновики и отправка.",
-  "author": {
-    "name": "Michael Gusev"
-  }
-}

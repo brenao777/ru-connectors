@@ -7,9 +7,8 @@ import unittest
 from email.message import EmailMessage
 from unittest.mock import MagicMock, patch
 
-SERVER = Path(__file__).resolve().parents[1] / "plugins/yandex-mail-windows/server"
+SERVER = Path(__file__).resolve().parents[1] / "plugins/ru-connectors/yandex-mail/server"
 sys.path.insert(0, str(SERVER))
-sys.path.insert(0, str(SERVER.parents[1] / "yandex-mail-macos/server"))
 spec = importlib.util.spec_from_file_location("mail_attachment_test", SERVER / "yandex_mail_mcp.py")
 mail = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mail)

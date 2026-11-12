@@ -1,4 +1,4 @@
-"""Exercise the exact packaged MCP command without network or mailbox access."""
+"""Exercise both MCP servers using the packaged launchers and no mailbox."""
 import json
 import os
 from pathlib import Path
@@ -10,17 +10,16 @@ import unittest
 
 @unittest.skipUnless(sys.platform in ("win32", "darwin"), "requires Windows or macOS")
 class PluginStdioTests(unittest.TestCase):
-    def test_published_launcher_exposes_send_tool(self):
-        for config in ("mcp.codex.json", ".mcp.json"):
-            with self.subTest(config=config):
-                self.check_launcher(config)
+    def test_published_launchers(self):
+        source = Path(__file__).resolve().parents[1] / "plugins" / "ru-connectors"
+        for config_name in ("mcp.codex.json", ".mcp.json"):
+            config = json.loads((source / config_name).read_text(encoding="utf-8"))
+            self.assertEqual(set(config["mcpServers"]), {"yandex-mail-safe", "mail-ru-readonly"})
+            for name, mcp in config["mcpServers"].items():
+                with self.subTest(config=config_name, server=name):
+                    self.check_launcher(source, name, mcp)
 
-    def check_launcher(self, config_name):
-        repo = Path(__file__).resolve().parents[1]
-        platform = "windows" if sys.platform == "win32" else "macos"
-        source = repo / "plugins" / f"yandex-mail-{platform}"
-        config = json.loads((source / config_name).read_text(encoding="utf-8"))
-        mcp = config["mcpServers"]["yandex-mail-safe"]
+    def check_launcher(self, source, name, mcp):
         command = [mcp["command"], *mcp["args"]]
         command = [arg.replace("${CLAUDE_PLUGIN_ROOT}", str(source)) for arg in command]
         requests = [
@@ -30,7 +29,7 @@ class PluginStdioTests(unittest.TestCase):
         payload = "".join(json.dumps(request) + "\n" for request in requests).encode("utf-8")
         with tempfile.TemporaryDirectory(prefix="mail test ") as temporary:
             environment = os.environ.copy()
-            if platform == "windows":
+            if sys.platform == "win32":
                 environment["LOCALAPPDATA"] = temporary
                 marker = Path(temporary) / "Codex/yandex-mail-safe/runtime-python.txt"
                 marker.parent.mkdir(parents=True)
@@ -41,6 +40,10 @@ class PluginStdioTests(unittest.TestCase):
             )
         self.assertEqual(result.returncode, 0, result.stderr.decode("utf-8", errors="replace"))
         hello, tool_list = [json.loads(line) for line in result.stdout.splitlines()]
-        self.assertEqual(hello["result"]["serverInfo"]["name"], "yandex-mail-safe")
+        self.assertEqual(hello["result"]["serverInfo"]["name"], name)
         names = {tool["name"] for tool in tool_list["result"]["tools"]}
-        self.assertTrue({"read_message", "send_message", "get_send_status"} <= names)
+        self.assertIn("read_message", names)
+        if name == "yandex-mail-safe":
+            self.assertTrue({"send_message", "get_send_status"} <= names)
+        else:
+            self.assertEqual(names, {"list_folders", "list_messages", "search_messages", "read_message"})

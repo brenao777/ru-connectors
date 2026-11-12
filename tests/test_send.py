@@ -9,9 +9,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-SERVER = Path(__file__).resolve().parents[1] / 'plugins/yandex-mail-windows/server'
+SERVER = Path(__file__).resolve().parents[1] / 'plugins/ru-connectors/yandex-mail/server'
 sys.path.insert(0, str(SERVER))
-sys.path.insert(0, str(SERVER.parents[1] / "yandex-mail-macos/server"))
 spec = importlib.util.spec_from_file_location('mail_under_test', SERVER / 'yandex_mail_mcp.py')
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)

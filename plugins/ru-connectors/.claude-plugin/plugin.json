@@ -1,0 +1,8 @@
+{
+  "name": "ru-connectors",
+  "version": "0.2.0",
+  "description": "Яндекс Почта и Почта Mail для Codex и Claude Code.",
+  "author": {
+    "name": "Michael Gusev"
+  }
+}

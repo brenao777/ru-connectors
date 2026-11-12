@@ -1,8 +1,0 @@
-{
-  "name": "yandex-mail-macos",
-  "version": "0.1.0",
-  "description": "Яндекс Почта на macOS: чтение, поиск, вложения, черновики и отправка.",
-  "author": {
-    "name": "Michael Gusev"
-  }
-}

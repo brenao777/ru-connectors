@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "yandex-mail-safe": {
+      "command": "git",
+      "args": [
+        "-c",
+        "alias.ru-connectors-launch=!f() { if test -n \"$GIT_PREFIX\"; then cd -- \"$GIT_PREFIX\" || exit; fi; exec sh \"$@\"; }; f",
+        "ru-connectors-launch",
+        "./scripts/launch.sh",
+        "yandex-mail"
+      ],
+      "cwd": "."
+    },
+    "mail-ru-readonly": {
+      "command": "git",
+      "args": [
+        "-c",
+        "alias.ru-connectors-launch=!f() { if test -n \"$GIT_PREFIX\"; then cd -- \"$GIT_PREFIX\" || exit; fi; exec sh \"$@\"; }; f",
+        "ru-connectors-launch",
+        "./scripts/launch.sh",
+        "mail-ru"
+      ],
+      "cwd": "."
+    }
+  }
+}

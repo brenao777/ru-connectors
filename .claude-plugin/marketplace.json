@@ -1,21 +1,15 @@
 {
-  "name": "yandex-mail-safe",
+  "name": "ru-connectors",
+  "description": "Яндекс Почта и Почта Mail для Codex и Claude Code.",
   "owner": {
     "name": "Michael Gusev"
   },
   "plugins": [
     {
-      "name": "yandex-mail-windows",
-      "version": "0.1.0",
-      "description": "Яндекс Почта на Windows: чтение, поиск, вложения, черновики и отправка.",
-      "source": "./plugins/yandex-mail-windows"
-    },
-    {
-      "name": "yandex-mail-macos",
-      "version": "0.1.0",
-      "description": "Яндекс Почта на macOS: чтение, поиск, вложения, черновики и отправка.",
-      "source": "./plugins/yandex-mail-macos"
+      "name": "ru-connectors",
+      "version": "0.2.0",
+      "description": "Яндекс Почта и Почта Mail для Codex и Claude Code.",
+      "source": "./plugins/ru-connectors"
     }
-  ],
-  "description": "Подключение Яндекс Почты в Codex и Claude Code на Windows и macOS."
+  ]
 }

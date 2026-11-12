@@ -1,26 +1,14 @@
 {
-  "name": "yandex-mail-safe",
+  "name": "ru-connectors",
   "interface": {
-    "displayName": "Яндекс Почта"
+    "displayName": "ru-connectors"
   },
   "plugins": [
     {
-      "name": "yandex-mail-windows",
+      "name": "ru-connectors",
       "source": {
         "source": "local",
-        "path": "./plugins/yandex-mail-windows"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Productivity"
-    },
-    {
-      "name": "yandex-mail-macos",
-      "source": {
-        "source": "local",
-        "path": "./plugins/yandex-mail-macos"
+        "path": "./plugins/ru-connectors"
       },
       "policy": {
         "installation": "AVAILABLE",

@@ -1,6 +1,6 @@
 # Offline flow tests, compatible with Windows PowerShell 5.1 and PowerShell 7.
 # All installation, process, discovery, and download operations are mocked.
-param([string]$BootstrapPath = (Join-Path $PSScriptRoot '..\plugins\yandex-mail-windows\scripts\bootstrap_windows.ps1'))
+param([string]$BootstrapPath = (Join-Path $PSScriptRoot '..\plugins\ru-connectors\scripts\bootstrap_windows.ps1'))
 $ErrorActionPreference = 'Stop'
 $tokens = $null
 $errors = $null

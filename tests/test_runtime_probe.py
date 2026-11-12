@@ -7,7 +7,7 @@ import types
 import unittest
 from unittest.mock import MagicMock, patch
 
-SCRIPTS = Path(__file__).resolve().parents[1] / 'plugins/yandex-mail-windows/scripts'
+SCRIPTS = Path(__file__).resolve().parents[1] / 'plugins/ru-connectors/scripts'
 spec = importlib.util.spec_from_file_location('probe_under_test', SCRIPTS / 'runtime_probe.py')
 p = importlib.util.module_from_spec(spec); spec.loader.exec_module(p)
 

@@ -7,6 +7,7 @@ mode=${2:-serve}
 case "$provider" in
     yandex-mail) server=yandex_mail_mcp.py ;;
     mail-ru) server=mail_ru_mcp.py ;;
+    yandex-disk) server=yandex_disk_mcp.py ;;
     *) exit 64 ;;
 esac
 provider_dir="$script_dir/../$provider"
@@ -18,7 +19,7 @@ find_python() {
         if [[ "$candidate" == /usr/bin/python3 ]] && ! /usr/bin/xcode-select -p >/dev/null 2>&1; then
             continue
         fi
-        if "$candidate" -I -c 'import imaplib, smtplib, sqlite3, ssl, sys; assert sys.version_info >= (3, 9); ssl.create_default_context()' >/dev/null 2>&1; then
+        if "$candidate" -I -c 'import imaplib, smtplib, sqlite3, ssl, sys, urllib.request; assert sys.version_info >= (3, 9); ssl.create_default_context()' >/dev/null 2>&1; then
             print -r -- "$candidate"
             return 0
         fi
@@ -28,7 +29,7 @@ find_python() {
 
 if ! python_exe=$(find_python); then
     if [[ "$mode" != setup ]]; then
-        print -u2 'Run the connect-russian-mail skill to set up Python.'
+        print -u2 'Run the connect-russian-mail or connect-yandex-disk skill to set up Python.'
         exit 20
     fi
     brew_exe=$(command -v brew || true)
@@ -52,6 +53,10 @@ check="$provider_dir/scripts/check_connection.py"
 case "$mode" in
     serve) exec "$python_exe" -E -s -B "$provider_dir/server/$server" ;;
     check) exec "$python_exe" -I "$check" ;;
+    disconnect)
+        [[ "$provider" == yandex-disk ]] || exit 64
+        exec "$python_exe" -I "$provider_dir/scripts/disconnect.py"
+        ;;
     read-attachment)
         [[ "$provider" == yandex-mail && $# == 3 ]] || exit 64
         exec "$python_exe" -I "$provider_dir/scripts/read_attachment_file.py" -- "$3"
@@ -59,9 +64,10 @@ case "$mode" in
     setup)
         if [[ ${3:-} != --reconnect ]]; then
             code=0
-            status=$("$python_exe" -I "$check") || code=$?
+            # zsh keeps $status read-only: it mirrors $?. Use our own name.
+            report=$("$python_exe" -I "$check") || code=$?
             if [[ $code != 3 ]]; then
-                print -r -- "$status"
+                print -r -- "$report"
                 exit "$code"
             fi
         fi

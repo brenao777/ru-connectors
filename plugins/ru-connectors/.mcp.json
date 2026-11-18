@@ -19,6 +19,16 @@
         "${CLAUDE_PLUGIN_ROOT}/scripts/launch.sh",
         "mail-ru"
       ]
+    },
+    "yandex-disk": {
+      "command": "git",
+      "args": [
+        "-c",
+        "alias.ru-connectors-launch=!f() { if test -n \"$GIT_PREFIX\"; then cd -- \"$GIT_PREFIX\" || exit; fi; exec sh \"$@\"; }; f",
+        "ru-connectors-launch",
+        "${CLAUDE_PLUGIN_ROOT}/scripts/launch.sh",
+        "yandex-disk"
+      ]
     }
   }
 }

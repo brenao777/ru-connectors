@@ -1,8 +1,8 @@
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet('yandex-mail', 'mail-ru')]
+    [ValidateSet('yandex-mail', 'mail-ru', 'yandex-disk')]
     [string]$Provider,
-    [ValidateSet('Serve', 'Setup', 'Check', 'ReadAttachment')]
+    [ValidateSet('Serve', 'Setup', 'Check', 'ReadAttachment', 'Disconnect')]
     [string]$Mode = 'Serve',
     [string]$AttachmentPath,
     [switch]$Reconnect
@@ -12,7 +12,11 @@ $ErrorActionPreference = 'Stop'
 $state = Join-Path $env:LOCALAPPDATA 'Codex\yandex-mail-safe'
 $runtimeFile = Join-Path $state 'runtime-python.txt'
 $providerRoot = Join-Path $PSScriptRoot ('..\' + $Provider)
-$serverName = if ($Provider -eq 'yandex-mail') { 'yandex_mail_mcp.py' } else { 'mail_ru_mcp.py' }
+$serverName = switch ($Provider) {
+    'yandex-mail' { 'yandex_mail_mcp.py' }
+    'mail-ru' { 'mail_ru_mcp.py' }
+    'yandex-disk' { 'yandex_disk_mcp.py' }
+}
 $server = Join-Path $providerRoot ('server\' + $serverName)
 $scripts = Join-Path $providerRoot 'scripts'
 $check = Join-Path $scripts 'check_connection.py'
@@ -56,17 +60,22 @@ if ($Mode -eq 'Setup') {
 }
 
 if (-not [IO.File]::Exists($runtimeFile)) {
-    [Console]::Error.WriteLine('Mail setup is required. Run the connect-russian-mail skill and start a new session.')
+    [Console]::Error.WriteLine('Connector setup is required. Run the connect-russian-mail or connect-yandex-disk skill and start a new session.')
     exit 20
 }
 $python = [IO.File]::ReadAllText($runtimeFile)
 if (-not [IO.Path]::IsPathRooted($python) -or -not [IO.File]::Exists($python)) {
-    [Console]::Error.WriteLine('Mail plugin Python runtime is unavailable. Run the connect-russian-mail skill.')
+    [Console]::Error.WriteLine('Plugin Python runtime is unavailable. Run the connect-russian-mail or connect-yandex-disk skill.')
     exit 20
 }
 
 if ($Mode -eq 'Check') {
     & $python -I $check
+    exit $LASTEXITCODE
+}
+if ($Mode -eq 'Disconnect') {
+    if ($Provider -ne 'yandex-disk') { throw 'Only the Yandex Disk connector supports Disconnect.' }
+    & $python -I (Join-Path $scripts 'disconnect.py')
     exit $LASTEXITCODE
 }
 if ($Mode -eq 'ReadAttachment') {

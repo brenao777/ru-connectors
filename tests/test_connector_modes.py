@@ -1,5 +1,6 @@
 """Drive the macOS launcher's setup and check modes with stub provider scripts."""
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -16,6 +17,11 @@ sys.exit({code})
 DIALOG = '''from pathlib import Path
 (Path(__file__).resolve().parent / "dialog-opened").write_text("1")
 '''
+# The probe the launcher runs against each Python candidate. In setup mode a
+# launcher that finds no usable Python installs one with Homebrew, so the test
+# hands it an interpreter it accepts and skips rather than start an install.
+PROBE = ("import imaplib, smtplib, sqlite3, ssl, sys, urllib.request; "
+         "assert sys.version_info >= (3, 9); ssl.create_default_context()")
 
 
 @unittest.skipUnless(sys.platform == "darwin", "the zsh launcher is used on macOS")
@@ -30,6 +36,12 @@ class LauncherModeTests(unittest.TestCase):
         self.provider.mkdir(parents=True)
         (self.root / "yandex-disk" / "server").mkdir()
         (self.provider / "setup_macos.py").write_text(DIALOG, encoding="utf-8")
+        if subprocess.run([sys.executable, "-I", "-c", PROBE], capture_output=True).returncode:
+            self.skipTest("this interpreter does not satisfy the launcher's Python probe")
+        local_bin = self.root / "bin"
+        local_bin.mkdir()
+        (local_bin / "python3").symlink_to(sys.executable)
+        self.environment = {**os.environ, "PATH": f"{local_bin}:{os.environ.get('PATH', '')}"}
 
     def write_check(self, payload, code):
         (self.provider / "check_connection.py").write_text(
@@ -39,7 +51,7 @@ class LauncherModeTests(unittest.TestCase):
     def run_mode(self, *arguments):
         return subprocess.run(
             ["/bin/zsh", str(self.root / "scripts" / "connector.sh"), "yandex-disk", *arguments],
-            capture_output=True, text=True, timeout=120,
+            capture_output=True, text=True, timeout=120, env=self.environment,
         )
 
     def test_setup_opens_the_dialog_only_when_no_token_is_stored(self):
@@ -74,7 +86,7 @@ class LauncherModeTests(unittest.TestCase):
         self.assertEqual(self.run_mode("teleport").returncode, 64)
         unknown = subprocess.run(
             ["/bin/zsh", str(self.root / "scripts" / "connector.sh"), "dropbox", "check"],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True, text=True, timeout=60, env=self.environment,
         )
         self.assertEqual(unknown.returncode, 64)
 

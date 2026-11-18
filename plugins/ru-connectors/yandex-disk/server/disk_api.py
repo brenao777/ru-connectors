@@ -70,14 +70,12 @@ def transfer_url(url, upload=False):
     try:
         parts = urlsplit(url)
         host = parts.hostname or ""
-        if upload:
-            allowed = re.fullmatch(
-                r"uploader[a-z0-9-]*\.(?:dst\.yandex\.(?:net|ru)|disk\.yandex\.(?:ru|com))", host,
-            )
-        else:
-            allowed = host in {
-                "downloader.dst.yandex.ru", "downloader.disk.yandex.ru", "downloader.disk.yandex.com",
-            } or host.endswith(".storage.yandex.net")
+        # Yandex hands out per-request transfer hosts such as
+        # uploader81oakkic.disk.yandex.net, so the suffix is pinned, not the name.
+        prefix = "uploader" if upload else "downloader"
+        allowed = re.fullmatch(
+            prefix + r"[a-z0-9-]*\.(?:dst|disk)\.yandex\.(?:net|ru|com)", host,
+        ) or (not upload and host.endswith(".storage.yandex.net"))
         if (parts.scheme == "https" and allowed and parts.port in (None, 443)
                 and parts.username is None and parts.password is None and not parts.fragment):
             return url

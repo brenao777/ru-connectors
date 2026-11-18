@@ -17,7 +17,7 @@ from uuid import uuid4
 CONNECTOR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(CONNECTOR / "server"))
 import credentials
-from disk_api import DiskClient, DiskError
+from disk_api import DiskClient, DiskError, transfer_url
 import windows_credentials
 import yandex_disk_mcp as mcp
 
@@ -109,6 +109,31 @@ class DiskClientTests(unittest.TestCase):
         sent = [call.args[0] for call in request.call_args_list]
         self.assertEqual(sent[2].get_header("Authorization"), f"OAuth {TOKEN}")
         self.assertIsNone(sent[3].get_header("Authorization"))
+
+    def test_transfer_hosts_accept_per_request_yandex_names_only(self):
+        for host in ("uploader81oakkic.disk.yandex.net", "uploader1d.dst.yandex.net",
+                     "uploader10h.disk.yandex.ru", "uploader.disk.yandex.com"):
+            url = f"https://{host}/upload-target/private"
+            self.assertEqual(transfer_url(url, upload=True), url)
+        for host in ("downloader.disk.yandex.ru", "downloader12e.disk.yandex.net",
+                     "downloader.dst.yandex.ru", "s99.storage.yandex.net"):
+            url = f"https://{host}/disk/token"
+            self.assertEqual(transfer_url(url), url)
+        rejected = [
+            ("https://uploader81oakkic.disk.yandex.net.example.com/payload", True),
+            ("http://uploader1d.disk.yandex.net/payload", True),
+            ("https://uploader1d.disk.yandex.net:8443/payload", True),
+            ("https://user:secret@uploader1d.disk.yandex.net/payload", True),
+            # A download host must not pass the upload check, and the reverse.
+            ("https://downloader.disk.yandex.net/payload", True),
+            ("https://uploader1d.disk.yandex.net/payload", False),
+            ("https://downloader.disk.yandex.ru/disk/token#part", False),
+            ("https://example.storage.yandex.net.example.com/disk/token", False),
+        ]
+        for url, upload in rejected:
+            with self.subTest(url=url, upload=upload):
+                with self.assertRaisesRegex(DiskError, "недопустимый адрес"):
+                    transfer_url(url, upload=upload)
 
     def test_non_yandex_download_or_redirect_is_blocked(self):
         bad_url = "https://downloader.dst.yandex.ru.example.com/disk/token"

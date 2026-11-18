@@ -17,7 +17,17 @@ jobs:
           python-version: '3.12'
       - run: python -m unittest discover -s tests -v
       - run: python -m unittest discover -s plugins/ru-connectors/mail-ru/tests -v
-      - run: python -m unittest discover -s yandex-disk/tests -v
+      - run: python -m unittest discover -s plugins/ru-connectors/yandex-disk/tests -v
       - if: runner.os == 'Windows'
         shell: powershell
         run: .\tests\test_bootstrap.ps1
+      - if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $failed = $false
+          foreach ($script in @('plugins\ru-connectors\scripts\connector.ps1', 'plugins\ru-connectors\scripts\bootstrap_windows.ps1')) {
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $script), [ref]$null, [ref]$errors)
+            if ($errors) { $errors | Write-Output; $failed = $true }
+          }
+          if ($failed) { exit 1 }

@@ -1,14 +1,14 @@
 {
   "name": "ru-connectors",
-  "description": "Яндекс Почта и Почта Mail для Codex и Claude Code.",
+  "description": "Яндекс Почта, Почта Mail и Яндекс Диск для Codex и Claude Code.",
   "owner": {
     "name": "Michael Gusev"
   },
   "plugins": [
     {
       "name": "ru-connectors",
-      "version": "0.3.0",
-      "description": "Яндекс Почта и Почта Mail для Codex и Claude Code.",
+      "version": "0.4.0",
+      "description": "Яндекс Почта, Почта Mail и Яндекс Диск для Codex и Claude Code.",
       "source": "./plugins/ru-connectors"
     }
   ]

@@ -1,4 +1,4 @@
-"""Exercise both MCP servers using the packaged launchers and no mailbox."""
+"""Exercise every MCP server using the packaged launchers and no stored credentials."""
 import json
 import os
 from pathlib import Path
@@ -14,7 +14,7 @@ class PluginStdioTests(unittest.TestCase):
         source = Path(__file__).resolve().parents[1] / "plugins" / "ru-connectors"
         for config_name in ("mcp.codex.json", ".mcp.json"):
             config = json.loads((source / config_name).read_text(encoding="utf-8"))
-            self.assertEqual(set(config["mcpServers"]), {"yandex-mail-safe", "mail-ru"})
+            self.assertEqual(set(config["mcpServers"]), {"yandex-mail-safe", "mail-ru", "yandex-disk"})
             for name, mcp in config["mcpServers"].items():
                 with self.subTest(config=config_name, server=name):
                     self.check_launcher(source, name, mcp)
@@ -27,7 +27,7 @@ class PluginStdioTests(unittest.TestCase):
             {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
         ]
         payload = "".join(json.dumps(request) + "\n" for request in requests).encode("utf-8")
-        with tempfile.TemporaryDirectory(prefix="mail test ") as temporary:
+        with tempfile.TemporaryDirectory(prefix="connector test ") as temporary:
             environment = os.environ.copy()
             if sys.platform == "win32":
                 environment["LOCALAPPDATA"] = temporary
@@ -42,6 +42,9 @@ class PluginStdioTests(unittest.TestCase):
         hello, tool_list = [json.loads(line) for line in result.stdout.splitlines()]
         self.assertEqual(hello["result"]["serverInfo"]["name"], name)
         names = {tool["name"] for tool in tool_list["result"]["tools"]}
+        if name == "yandex-disk":
+            self.assertTrue({"list_folder", "read_text", "upload_text", "get_upload_status"} <= names)
+            return
         self.assertIn("read_message", names)
         if name == "yandex-mail-safe":
             self.assertTrue({"send_message", "get_send_status"} <= names)

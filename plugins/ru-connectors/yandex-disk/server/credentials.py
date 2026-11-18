@@ -27,7 +27,7 @@ def read_token():
     elif sys.platform == "darwin":
         result = security("find-generic-password", "-s", SERVICE, "-a", ACCOUNT, "-w")
         if result.returncode:
-            raise DiskError("Токен Яндекс Диска недоступен. Запустите setup.py connect в Терминале.")
+            raise DiskError("Токен Яндекс Диска недоступен. Подключите Диск через скилл connect-yandex-disk.")
         token = result.stdout.strip()
     else:
         raise DiskError("Для подключения нужна macOS или Windows.")

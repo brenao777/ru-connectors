@@ -6,7 +6,7 @@ import sys
 
 REQUIRED_MODULES = (
     'ssl', 'imaplib', 'smtplib', 'email', 'json', 'sqlite3', 'ctypes',
-    'http.client', 'urllib.parse', 'xml.etree.ElementTree', 'tkinter',
+    'http.client', 'urllib.parse', 'urllib.request', 'xml.etree.ElementTree', 'tkinter',
     'venv', 'ensurepip', 'zipfile',
 )
 

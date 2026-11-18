@@ -1,5 +1,6 @@
 import ctypes
-from contextlib import suppress
+from contextlib import redirect_stdout, suppress
+import importlib.util
 import io
 import json
 from pathlib import Path
@@ -14,12 +15,21 @@ from uuid import uuid4
 
 
 CONNECTOR = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(CONNECTOR))
+sys.path.insert(0, str(CONNECTOR / "server"))
 import credentials
-from client_config import configure
 from disk_api import DiskClient, DiskError
 import windows_credentials
 import yandex_disk_mcp as mcp
+
+
+def load_script(name):
+    """Load a setup script the way the launchers run it, without side effects."""
+    spec = importlib.util.spec_from_file_location(
+        "yandex_disk_" + name, CONNECTOR / "scripts" / (name + ".py"),
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 PATH = "disk:/Учебные + файлы/Отчёт #1.txt"
@@ -234,7 +244,7 @@ class MCPSmokeTests(unittest.TestCase):
             b'{"jsonrpc":"2.0","id":2,"method":"tools/list"}\n',
             b'{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"list_folder","arguments":{"limit":true}}}\n',
         ]
-        run = subprocess.run([sys.executable, str(CONNECTOR / "yandex_disk_mcp.py")],
+        run = subprocess.run([sys.executable, str(CONNECTOR / "server" / "yandex_disk_mcp.py")],
                              input=b"".join(requests), capture_output=True, check=True, timeout=10)
         malformed, initialize, tools, bad_limit = map(json.loads, run.stdout.splitlines())
         self.assertEqual(malformed["error"]["code"], -32700)
@@ -276,32 +286,63 @@ class MCPSmokeTests(unittest.TestCase):
         self.assertIs(mcp.validated_arguments("upload_text", arguments)["overwrite"], False)
 
 
+class SetupScriptTests(unittest.TestCase):
+    def report(self, script, expected_code):
+        stream = io.StringIO()
+        with redirect_stdout(stream):
+            code = script.main()
+        self.assertEqual(code, expected_code)
+        return json.loads(stream.getvalue())
+
+    def test_check_reports_missing_token_separately_from_a_failed_probe(self):
+        script = load_script("check_connection")
+        with patch.object(script, "read_token", side_effect=DiskError("нет токена")):
+            self.assertEqual(self.report(script, 3), {"ready": False, "reason": "credentials_unavailable"})
+        with patch.object(script, "read_token", return_value=TOKEN), patch.object(
+            DiskClient, "check_connection", side_effect=[{"connected": True}, DiskError("нет записи")],
+        ):
+            self.assertEqual(self.report(script, 4), {
+                "read": True, "write": False, "reason": "нет записи", "ready": False,
+            })
+        with patch.object(script, "read_token", return_value=TOKEN), patch.object(
+            DiskClient, "check_connection", return_value={"connected": True},
+        ):
+            self.assertEqual(self.report(script, 0), {"read": True, "write": True, "ready": True})
+
+    def test_disconnect_reports_the_credential_store_verdict(self):
+        script = load_script("disconnect")
+        with patch.object(script, "delete_token") as delete:
+            self.assertEqual(self.report(script, 0), {"disconnected": True})
+        delete.assert_called_once_with()
+        with patch.object(script, "delete_token", side_effect=DiskError("хранилище отказало")):
+            self.assertEqual(self.report(script, 1), {"disconnected": False, "reason": "хранилище отказало"})
+
+    @unittest.skipUnless(sys.platform == "darwin", "the macOS dialog is used for setup")
+    def test_macos_setup_stores_only_a_verified_token(self):
+        script = load_script("setup_macos")
+        entered = subprocess.CompletedProcess([], 0, stdout=TOKEN + "\n")
+        with patch.object(script.subprocess, "run", return_value=entered), patch.object(
+            DiskClient, "check_connection", side_effect=DiskError("токен отклонён"),
+        ), patch.object(script, "write_token") as write:
+            with self.assertRaisesRegex(SystemExit, "отклонён"):
+                script.main()
+            write.assert_not_called()
+        with patch.object(script.subprocess, "run", return_value=entered), patch.object(
+            DiskClient, "check_connection", return_value={"connected": True},
+        ), patch.object(script, "write_token") as write:
+            script.main()
+        write.assert_called_once_with(TOKEN)
+        cancelled = subprocess.CompletedProcess([], 1, stdout="", stderr="User canceled. (-128)")
+        with patch.object(script.subprocess, "run", return_value=cancelled), patch.object(
+            script, "write_token",
+        ) as write:
+            with self.assertRaises(SystemExit) as cancel:
+                script.main()
+            self.assertEqual(cancel.exception.code, 2)
+            write.assert_not_called()
+
+
 class NativeSetupTests(unittest.TestCase):
-    def test_generate_project_configs_with_unicode_and_windows_paths(self):
-        with tempfile.TemporaryDirectory(prefix="Тест MCP ") as directory:
-            project = Path(directory)
-            executable = r"C:\Program Files\Python\python.exe"
-            with patch("client_config.sys.executable", executable):
-                configure(project)
-                configure(project)
-            claude = json.loads((project / ".mcp.json").read_text(encoding="utf-8"))
-            server = claude["mcpServers"]["yandex-disk"]
-            codex = (project / ".codex/config.toml").read_text(encoding="utf-8")
-            self.assertEqual(server["command"], executable)
-            self.assertEqual(server["args"][-1], str(project / "yandex-disk/yandex_disk_mcp.py"))
-            self.assertIn("command = " + json.dumps(executable), codex)
-            self.assertIn("args = " + json.dumps(server["args"], ensure_ascii=False), codex)
-
-    def test_configure_preserves_existing_configuration(self):
-        with tempfile.TemporaryDirectory() as directory:
-            project = Path(directory)
-            claude = project / ".mcp.json"
-            claude.write_text("existing", encoding="utf-8")
-            with self.assertRaisesRegex(DiskError, "уже содержит"):
-                configure(project)
-            self.assertEqual(claude.read_text(encoding="utf-8"), "existing")
-            self.assertFalse((project / ".codex/config.toml").exists())
-
     def test_windows_credential_marshalling(self):
         storage = {}
 

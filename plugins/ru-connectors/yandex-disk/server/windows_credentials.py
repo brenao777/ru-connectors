@@ -49,7 +49,7 @@ def read_token():
     api = credential_api()
     pointer = PCREDENTIALW()
     if not api.CredReadW(TARGET_NAME, CRED_TYPE_GENERIC, 0, ctypes.byref(pointer)):
-        raise DiskError("Токен Яндекс Диска недоступен. Запустите setup.py connect в PowerShell.")
+        raise DiskError("Токен Яндекс Диска недоступен. Подключите Диск через скилл connect-yandex-disk.")
     try:
         stored = pointer.contents
         return ctypes.string_at(stored.CredentialBlob, stored.CredentialBlobSize).decode("ascii")

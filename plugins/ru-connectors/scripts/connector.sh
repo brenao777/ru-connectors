@@ -64,9 +64,10 @@ case "$mode" in
     setup)
         if [[ ${3:-} != --reconnect ]]; then
             code=0
-            status=$("$python_exe" -I "$check") || code=$?
+            # zsh keeps $status read-only: it mirrors $?. Use our own name.
+            report=$("$python_exe" -I "$check") || code=$?
             if [[ $code != 3 ]]; then
-                print -r -- "$status"
+                print -r -- "$report"
                 exit "$code"
             fi
         fi

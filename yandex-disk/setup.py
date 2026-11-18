@@ -2,35 +2,40 @@
 
 import argparse
 import getpass
+from pathlib import Path
 import sys
 import warnings
 
+from client_config import configure
 from credentials import delete_token, read_token, write_token
 from disk_api import DiskClient, DiskError
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Подключение Яндекс Диска на macOS")
-    parser.add_argument("action", choices=("connect", "check", "disconnect"))
+    parser = argparse.ArgumentParser(description="Подключение Яндекс Диска на macOS и Windows")
+    parser.add_argument("action", choices=("configure", "connect", "check", "disconnect"))
     action = parser.parse_args().action
     try:
-        if sys.platform != "darwin":
-            raise DiskError("Для пробной настройки нужна macOS.")
-        if action == "disconnect":
+        if sys.platform not in ("darwin", "win32") or sys.version_info < (3, 9):
+            raise DiskError("Для настройки нужна macOS или Windows с Python 3.9+.")
+        if action == "configure":
+            configure(Path(__file__).resolve().parents[1])
+            print("Подготовлены настройки тестового проекта для Codex и Claude Code.")
+        elif action == "disconnect":
             delete_token()
-            print("Токен удалён из Связки ключей.")
+            print("Токен удалён из системного хранилища.")
         elif action == "check":
-            DiskClient(read_token()).check_connection()
-            print("Подключение к Яндекс Диску работает.")
+            DiskClient(read_token()).check_connection(check_write=True)
+            print("Доступ к чтению и загрузке на Яндекс Диск подтверждён.")
         else:
             with warnings.catch_warnings():
                 warnings.simplefilter("error", getpass.GetPassWarning)
                 token = getpass.getpass("Вставьте OAuth-токен Яндекс Диска: ").strip()
-            DiskClient(token).check_connection()
+            DiskClient(token).check_connection(check_write=True)
             write_token(token)
-            print("Яндекс Диск подключён. Токен сохранён в Связке ключей.")
+            print("Яндекс Диск подключён. Токен сохранён в системном хранилище.")
     except (EOFError, getpass.GetPassWarning):
-        print("Откройте Терминал и повторите команду для скрытого ввода токена.", file=sys.stderr)
+        print("Откройте Терминал или PowerShell для скрытого ввода токена.", file=sys.stderr)
         return 1
     except KeyboardInterrupt:
         return 130
